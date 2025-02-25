@@ -13,30 +13,45 @@ struct CustomTabBarView: View {
     @Binding var tabBarScrollableState: String?
     @Binding var mainViewScrollableState: String?
     @Binding var progress: CGFloat
-    var body: some View {
-        ScrollViewReader { proxy in 
-            ZStack {
-                TabBarScrollView(tabs: $tabs, activeIndex: $activeIndex, tabBarScrollableState: $tabBarScrollableState, mainViewScrollableState: $mainViewScrollableState, textColor: .gray, proxy: proxy)
-                TabBarScrollView(tabs: $tabs, activeIndex: $activeIndex, tabBarScrollableState: $tabBarScrollableState, mainViewScrollableState: $mainViewScrollableState, textColor: .primary, proxy: proxy)
-                    .mask {
-                        TabIndicatorView(tabs: tabs, progress: progress)
-                    }
-            }
-        }
-        .scrollPosition(id: .init(get: {
-            return tabBarScrollableState
-        }, set: { _ in
 
-        }), anchor: .center)
-        .background(alignment: .bottom) {
+    var body: some View {
+        ZStack(alignment: .bottomLeading) { // Giữ Capsule đúng vị trí
             TabIndicatorView(tabs: tabs, progress: progress)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        ForEach($tabs.indices, id: \.self) { index in
+                            Button(action: {
+                                withAnimation(.snappy) {
+                                    activeIndex = index
+                                    tabBarScrollableState = tabs[index].title
+                                    mainViewScrollableState = tabs[index].title
+                                    proxy.scrollTo(tabs[index].title, anchor: .center)
+                                }
+                            }) {
+                                Text(tabs[index].title)
+                                    .padding(.vertical, 12)
+                                    .foregroundStyle(Color.primary)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .id(tabs[index].title)
+                            .rect { rect in
+                                tabs[index].size = rect.size
+                                tabs[index].minX = rect.minX
+                            }
+                        }
+                    }
+                }
+                .scrollPosition(id: $tabBarScrollableState, anchor: .center)
+            }
+           
         }
-        .safeAreaPadding(.horizontal, 15)
-        .scrollIndicators(.hidden)
-        .padding(.bottom)
+        .padding([.bottom, .horizontal])
         .background(.thinMaterial)
     }
 }
+
 
 #Preview {
     HomeView()
@@ -53,7 +68,7 @@ struct TabIndicatorView: View {
             let indicatorWidth = progress.interpolate(inputRange: inputRange, outputRange: outputRange)
             let indicatorPosition = progress.interpolate(inputRange: inputRange, outputRange: outputPositionRange)
 
-            RoundedRectangle(cornerRadius: 20)
+            Capsule()
                 .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [Color.pink, Color.purple]),
